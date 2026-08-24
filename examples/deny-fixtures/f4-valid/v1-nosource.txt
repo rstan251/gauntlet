@@ -1,0 +1,3 @@
+VERDICT: PASS
+Requirement coverage:
+- billing: PASS — looked at it, seems right

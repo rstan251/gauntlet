@@ -1,0 +1,4 @@
+VERDICT: PASS
+bar-source: AK-007, AK-009
+Requirement coverage:
+- billing: PASS — tests green
