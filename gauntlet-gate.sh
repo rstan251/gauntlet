@@ -30,6 +30,10 @@ fail() { FAILS+=("$1"); }
 # Vague words that let a critic invent its own bar — the exact failure mode this gate exists for.
 VAGUE='production[- ]ready|production[- ]grade|high[- ]quality|best practice|robust|seamless|polished|intuitive|clean code|well[- ]structured|properly|as needed|as appropriate|good enough|looks good|feels |excellent|solid|nice|modern|scalable(\b|$)|user[- ]friendly'
 FOG='(^|[^A-Za-z])(TBD|TODO|FOG|\?\?\?|ASSUMED|ASSUMPTION|DECIDE LATER|figure out later)([^A-Za-z]|$)'
+# Placeholder values asserted as real config — "the REPLACE_WITH_* are already live" is an
+# assumption dressed as fact. A literal placeholder in the frozen inputs
+# means nobody looked up the true value; it may not justify a deploy.
+PLACEHOLDER='REPLACE_WITH_?[A-Z0-9_]*|PASTE_[A-Z0-9_]+|CHANGE_?ME|YOUR_[A-Z0-9_]+_(HERE|KEY|TOKEN|ID)|INSERT_[A-Z0-9_]+_HERE|XXXXX+'
 
 check_bar() {
   if [ ! -f "$KEY" ]; then
@@ -54,6 +58,13 @@ check_bar() {
     fog=$(grep -nEi "$FOG" "$MAP" | grep -viE '^[0-9]+:.*(RESOLVED|CLEARED)' || true)
     [ -n "$fog" ] && fail "MAP.md has unresolved fog (clear it by research/rough-build, do not assume):
 $(printf '%s\n' "$fog" | sed 's/^/      MAP.md:/')"
+    local ph
+    for f in "$MAP" "$KEY"; do
+      [ -f "$f" ] || continue
+      ph=$(grep -nE "$PLACEHOLDER" "$f" | grep -viE '(RESOLVED|CLEARED|placeholder-check|deny)' || true)
+      [ -n "$ph" ] && fail "$(basename "$f") asserts placeholder values as real config — find the true value and its receipt before any build/deploy:
+$(printf '%s\n' "$ph" | sed "s/^/      $(basename "$f"):/")"
+    done
   fi
 
   # --- Answer key must be binary, id'd, and inspectable ---
@@ -101,7 +112,10 @@ $(printf '%s\n' "$fog" | sed 's/^/      MAP.md:/')"
 check_verdict() {
   [ -f "$VERDICT" ] || { fail "verdict file not found: $VERDICT"; return 1; }
   local src
-  src=$(grep -iE '^[[:space:]]*bar-source:' "$VERDICT" | head -1 | sed 's/^[^:]*:[[:space:]]*//')
+  # The bar-source may wrap: take the line AND every following indented continuation line,
+  # stopping at a blank line or the next heading. Reading only the first physical line let a
+  # fabricated id on line two sail through.
+  src=$(awk 'BEGIN{IGNORECASE=1} /^[[:space:]]*bar-source:/{p=1; sub(/^[^:]*:[[:space:]]*/,""); printf "%s ", $0; next} p{ if ($0 ~ /^[[:space:]]*$/ || $0 ~ /^[^[:space:]].*:/) exit; printf "%s ", $0 }' "$VERDICT" | sed 's/[[:space:]]*$//')
   if [ -z "$src" ]; then
     fail "verdict has no 'bar-source:' line — it cannot say what it graded against, so it is ADVISORY ONLY and may never be recorded as a PASS"
     return 1
@@ -117,6 +131,14 @@ check_verdict() {
     grep -q "^- \[$c\]" "$KEY" || bad="$bad $c"
   done
   [ -n "$bad" ] && fail "verdict cites answer-key ids that do not exist in $KEY:$bad (fabricated bar)"
+  # Assumption-as-fact hunt: a critic must SAY which builder claims it rejected
+  # as unreceipted. A verdict that never lists unverified claims never hunted them.
+  grep -qiE '^[[:space:]]*Unverified claims:' "$VERDICT" \
+    || fail "verdict has no 'Unverified claims:' line — list each builder claim stated as fact without a receipt (TESTED or REJECTED), or 'none' if every load-bearing claim carried one"
+  local vph
+  vph=$(grep -nE "$PLACEHOLDER" "$VERDICT" || true)
+  [ -n "$vph" ] && fail "verdict itself contains placeholder values graded as facts:
+$(printf '%s\n' "$vph" | sed 's/^/      verdict:/')"
   [ ${#FAILS[@]} -eq 0 ] && echo "VERDICT BAR SOURCE: $(printf '%s' "$cited" | tr '\n' ' ')"
   return 0
 }

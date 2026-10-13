@@ -14,8 +14,8 @@ This pack is the fix:
 
 1. **Freeze the original request.** Conformance is judged against that, not against the agent's later plan.
 2. **Write the bar first.** Either a reference artifact, or two files: `MAP.md` (decisions) and `ANSWER-KEY.md` (binary checks).
-3. **Run a gate that can say no.** Vague words, missing ids, unresolved `TBD`, fake paths — exit 1, no builder spawns.
-4. **Critic returns a contract.** Verdict, `bar-source:`, coverage, one gap, a reproduction. A verdict that cannot name its bar is advisory only.
+3. **Run a gate that can say no.** Vague words, missing ids, unresolved `TBD`, fake paths, `REPLACE_WITH_*` placeholders posing as config — exit 1, no builder spawns.
+4. **Critic returns a contract.** Verdict, `bar-source:`, coverage, one gap, a reproduction, and `Unverified claims:`. A verdict that cannot name its bar, or never hunted unreceipted claims, is advisory only.
 5. **Stop on evidence.** Independent PASS, two dead cycles, budget, or a human-only decision.
 
 ## Install
@@ -50,7 +50,11 @@ cd ~/.claude/skills/gauntlet   # or wherever you put it
 ./examples/run-deny-proof.sh
 ```
 
-Expect 11 passed, 0 failed. Seven of those assertions are denials.
+Expect 15 passed, 0 failed. Ten of those assertions are denials.
+
+```bash
+./examples/triage-selftest.sh   # 18 passed, 0 failed
+```
 
 ## Use it on a real build
 
@@ -78,8 +82,10 @@ After a critic writes a verdict:
 |---|---|
 | `SKILL.md` | The loop. Drop this in a skills folder. |
 | `gauntlet-gate.sh` | The teeth. `bar` and `verdict` modes. Exit 1 blocks. |
+| `gauntlet-triage.sh` | Which tier a change earns (T0 / T1 / T2), as JSON. |
 | `templates/` | Blank MAP + ANSWER KEY. |
-| `examples/run-deny-proof.sh` | 11 assertions, 7 denials. |
+| `examples/run-deny-proof.sh` | 15 assertions, 10 denials. |
+| `examples/triage-selftest.sh` | 18 triage assertions. |
 | `examples/deny-fixtures/` | Malformed bars the gate must refuse. |
 | `examples/step0-self/` | The MAP + KEY used to build the gate itself. |
 | `docs/the-missing-bar.md` | The essay: where this came from and why Step 0 exists. |

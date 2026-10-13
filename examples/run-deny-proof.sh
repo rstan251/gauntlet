@@ -13,6 +13,10 @@ ck(){ if [ "$2" = "$3" ]; then echo "  $1: PASS (exit $2)"; P=$((P+1)); else ech
 "$G" verdict --dir "$D" --verdict "$D/v1-nosource.txt"   >/dev/null 2>&1; ck "AK-007 no bar-source denied"  $? 1
 "$G" verdict --dir "$D" --verdict "$D/v2-fabricated.txt" >/dev/null 2>&1; ck "AK-008 fabricated ids denied" $? 1
 "$G" verdict --dir "$D" --verdict "$D/v3-good.txt"       >/dev/null 2>&1; ck "AK-009 cited verdict passes"  $? 0
+"$G" bar --dir "$F/f7-placeholder" >/dev/null 2>&1; ck "AK-013 placeholder-as-fact denied" $? 1
+"$G" verdict --dir "$D" --verdict "$D/v4-noclaims.txt" >/dev/null 2>&1; ck "AK-014 no-unverified-claims-line denied" $? 1
+"$G" verdict --dir "$D" --verdict "$D/v5-wrapped-fabricated.txt" >/dev/null 2>&1; ck "AK-015 fabricated id on a wrapped bar-source line denied" $? 1
+"$G" verdict --dir "$D" --verdict "$D/v6-wrapped-good.txt" >/dev/null 2>&1; ck "AK-016 wrapped honest bar-source passes" $? 0
 "$G" bar --dir examples/step0-self >/dev/null 2>&1;      ck "AK-010 self key passes" $? 0
 bash -n "$G" >/dev/null 2>&1;                            ck "AK-012 syntax ok"       $? 0
 echo "---"; echo "$P passed, $N failed"; [ "$N" -eq 0 ]
