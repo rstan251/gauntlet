@@ -1,0 +1,5 @@
+VERDICT: PASS
+bar-source: AK-001, AK-002
+Requirement coverage:
+- AK-001: PASS — npm test -> 41 passing
+- AK-002: PASS — curl -> 401
